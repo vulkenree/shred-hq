@@ -6,6 +6,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { useTrip } from '@/lib/trip-context';
+import { NicknameDialog } from '@/components/auth/nickname-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,7 +32,7 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, needsNickname, setNicknameComplete } = useAuth();
   const { trip } = useTrip();
   const router = useRouter();
   const [editNicknameOpen, setEditNicknameOpen] = useState(false);
@@ -174,6 +175,16 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* First-time nickname prompt */}
+      {user && needsNickname && (
+        <NicknameDialog
+          open={needsNickname}
+          userId={user.uid}
+          defaultName={user.displayName || ''}
+          onComplete={setNicknameComplete}
+        />
+      )}
     </div>
   );
 }
