@@ -4,20 +4,23 @@ import {
   collection,
   doc,
   addDoc,
-  setDoc,
   updateDoc,
-  deleteDoc,
   getDoc,
   getDocs,
   query,
   where,
-  orderBy,
   limit,
   Timestamp,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Trip } from '@/types';
+
+// Helper to ensure db is available
+function getDb() {
+  if (!db) throw new Error('Firestore not initialized');
+  return db;
+}
 
 // Generate a random 6-character invite code
 export function generateInviteCode(): string {
@@ -40,7 +43,7 @@ export async function createTrip(data: {
 }): Promise<string> {
   const inviteCode = generateInviteCode();
 
-  const tripRef = await addDoc(collection(db, 'trips'), {
+  const tripRef = await addDoc(collection(getDb(), 'trips'), {
     name: data.name,
     resort: data.resort,
     location: data.location,
@@ -53,7 +56,7 @@ export async function createTrip(data: {
   });
 
   // Update user's current trip
-  await updateDoc(doc(db, 'users', data.createdBy), {
+  await updateDoc(doc(getDb(), 'users', data.createdBy), {
     currentTrip: tripRef.id,
   });
 
@@ -65,7 +68,7 @@ export async function joinTripByCode(
   inviteCode: string,
   userId: string
 ): Promise<string | null> {
-  const tripsRef = collection(db, 'trips');
+  const tripsRef = collection(getDb(), 'trips');
   const q = query(tripsRef, where('inviteCode', '==', inviteCode.toUpperCase()), limit(1));
   const snapshot = await getDocs(q);
 
@@ -84,7 +87,7 @@ export async function joinTripByCode(
   }
 
   // Update user's current trip
-  await updateDoc(doc(db, 'users', userId), {
+  await updateDoc(doc(getDb(), 'users', userId), {
     currentTrip: tripDoc.id,
   });
 
@@ -93,7 +96,7 @@ export async function joinTripByCode(
 
 // Get user's trips
 export async function getUserTrips(userId: string): Promise<Trip[]> {
-  const tripsRef = collection(db, 'trips');
+  const tripsRef = collection(getDb(), 'trips');
   const q = query(tripsRef, where('members', 'array-contains', userId));
   const snapshot = await getDocs(q);
 
@@ -105,7 +108,7 @@ export async function getUserTrips(userId: string): Promise<Trip[]> {
 
 // Get a single trip
 export async function getTrip(tripId: string): Promise<Trip | null> {
-  const tripRef = doc(db, 'trips', tripId);
+  const tripRef = doc(getDb(), 'trips', tripId);
   const snapshot = await getDoc(tripRef);
 
   if (!snapshot.exists()) {

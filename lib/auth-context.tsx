@@ -24,8 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Skip if Firebase isn't initialized
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+      if (user && db) {
         // Create or update user profile in Firestore
         const userRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userRef);
@@ -46,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
+    if (!auth || !googleProvider) {
+      console.error('Firebase not initialized');
+      return;
+    }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
@@ -55,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!auth) return;
     try {
       await firebaseSignOut(auth);
     } catch (error) {

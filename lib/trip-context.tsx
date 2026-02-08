@@ -26,7 +26,7 @@ export function TripProvider({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!tripId) {
+    if (!tripId || !db) {
       setLoading(false);
       return;
     }
