@@ -92,6 +92,7 @@ export interface HourlyForecast {
 export interface UserProfile {
   uid: string;
   displayName: string;
+  nickname?: string;
   email: string;
   photoURL: string;
   currentTrip?: string;

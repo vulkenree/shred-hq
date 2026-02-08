@@ -1,10 +1,19 @@
 "use client";
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { useTrip } from '@/lib/trip-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +21,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Share2, LogOut, FolderOpen } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Share2, LogOut, FolderOpen, Pencil, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AppShellProps {
@@ -20,9 +31,14 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { trip } = useTrip();
   const router = useRouter();
+  const [editNicknameOpen, setEditNicknameOpen] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const displayName = profile?.nickname || profile?.displayName || user?.displayName || 'User';
 
   const handleShareCode = () => {
     if (trip?.inviteCode) {
@@ -40,6 +56,29 @@ export function AppShell({ children }: AppShellProps) {
 
   const handleSwitchTrip = () => {
     router.push('/trip');
+  };
+
+  const handleEditNickname = () => {
+    setNewNickname(profile?.nickname || '');
+    setEditNicknameOpen(true);
+  };
+
+  const handleSaveNickname = async () => {
+    if (!user || !db || !newNickname.trim()) return;
+
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        nickname: newNickname.trim(),
+      });
+      toast.success('Nickname updated!');
+      setEditNicknameOpen(false);
+    } catch (error) {
+      console.error('Error updating nickname:', error);
+      toast.error('Failed to update nickname');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -79,10 +118,14 @@ export function AppShell({ children }: AppShellProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium truncate">{user?.displayName}</p>
+                  <p className="text-sm font-medium truncate">{displayName}</p>
                   <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleEditNickname}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Nickname
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleSwitchTrip}>
                   <FolderOpen className="w-4 h-4 mr-2" />
                   Switch Trip
@@ -102,6 +145,35 @@ export function AppShell({ children }: AppShellProps) {
       <main className="max-w-md mx-auto">
         {children}
       </main>
+
+      {/* Edit Nickname Dialog */}
+      <Dialog open={editNicknameOpen} onOpenChange={setEditNicknameOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Nickname</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nickname">Nickname</Label>
+              <Input
+                id="edit-nickname"
+                value={newNickname}
+                onChange={(e) => setNewNickname(e.target.value)}
+                maxLength={20}
+                placeholder="Your nickname"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setEditNicknameOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveNickname} disabled={saving || !newNickname.trim()}>
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

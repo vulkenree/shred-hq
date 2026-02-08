@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Users, MapPin, Calendar, Loader2 } from 'lucide-react';
+import { Plus, Users, MapPin, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,11 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/lib/auth-context';
 import { RESORTS, getResortByName } from '@/lib/resorts';
 import { createTrip, joinTripByCode, getUserTrips } from '@/lib/firestore-helpers';
+import { NicknameDialog } from '@/components/auth/nickname-dialog';
 import { Trip } from '@/types';
 import { toast } from 'sonner';
 
 export default function TripPage() {
-  const { user } = useAuth();
+  const { user, needsNickname, setNicknameComplete } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
   const [loading, setLoading] = useState(false);
@@ -259,6 +260,16 @@ export default function TripPage() {
           </Card>
         )}
       </div>
+
+      {/* Nickname Dialog for first-time users */}
+      {user && (
+        <NicknameDialog
+          open={needsNickname}
+          userId={user.uid}
+          defaultName={user.displayName || ''}
+          onComplete={setNicknameComplete}
+        />
+      )}
     </div>
   );
 }
